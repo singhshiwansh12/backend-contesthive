@@ -12,7 +12,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.postgresql import ARRAY
 from pydantic import BaseModel
 
-import google.generativeai as genai
+from sentence_transformers import SentenceTransformer
+_model = SentenceTransformer("paraphrase-multilingual-mpnet-base-v2")
 from pgvector.sqlalchemy import Vector
 
 load_dotenv()
@@ -23,12 +24,19 @@ ADMIN_PIN = os.getenv("ADMIN_PIN", "1234")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-genai.configure(api_key=GEMINI_API_KEY)
+
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 # Fix for Neon: replace postgresql:// with postgresql+psycopg2://
 SAFE_DB_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
-engine = create_engine(SAFE_DB_URL, connect_args={"sslmode": "require"})
+engine = create_engine(
+    SAFE_DB_URL,
+    connect_args={"sslmode": "require"},
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=5,
+    max_overflow=2,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -99,14 +107,10 @@ def verify_pin(pin: str):
         raise HTTPException(status_code=401, detail="Invalid admin PIN")
 
 def get_embedding(text: str) -> List[float]:
-    """Generate embedding using Gemini embedding model."""
+    """Generate embedding using sentence-transformers (free, no API key)."""
     try:
-        result = genai.embed_content(
-            model="models/text-embedding-004",
-            content=text,
-            task_type="retrieval_document"
-        )
-        return result["embedding"]
+        embedding = _model.encode(text, normalize_embeddings=True)
+        return embedding.tolist()
     except Exception as e:
         print(f"Embedding error: {e}")
         return [0.0] * 768
