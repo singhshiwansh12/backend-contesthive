@@ -189,22 +189,33 @@ def get_solutions(
 
 @app.get("/api/solutions/ai-search")
 def ai_search(q: str = Query(..., description="Search query"), db: Session = Depends(get_db)):
-    """Semantic search using cosine similarity with pgvector."""
+    """Semantic search using cosine similarity with pgvector with threshold."""
     if not q.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     query_embedding = get_embedding(q)
+    THRESHOLD = 0.5
 
-    # Cosine similarity search via pgvector operator <=>
-    results = (
-        db.query(Solution)
-        .filter(Solution.embedding.isnot(None))
-        .order_by(Solution.embedding.op("<=>")(query_embedding))
-        .limit(10)
-        .all()
-    )
+    from sqlalchemy import text as sa_text
+    rows = db.execute(
+        sa_text("""
+            SELECT id, (embedding <=> :emb) AS distance
+            FROM solutions
+            WHERE embedding IS NOT NULL
+            AND (embedding <=> :emb) < :threshold
+            ORDER BY distance ASC
+            LIMIT 10
+        """),
+        {"emb": str(query_embedding), "threshold": THRESHOLD}
+    ).fetchall()
 
-    return [solution_to_out(s) for s in results]
+    if not rows:
+        return []
+
+    ids = [row[0] for row in rows]
+    solutions = db.query(Solution).filter(Solution.id.in_(ids)).all()
+    sol_map = {s.id: s for s in solutions}
+    return [solution_to_out(sol_map[i]) for i in ids if i in sol_map]
 
 
 @app.get("/api/solutions/{solution_id}")
