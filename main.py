@@ -194,7 +194,7 @@ def ai_search(q: str = Query(..., description="Search query"), db: Session = Dep
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     query_embedding = get_embedding(q)
-    THRESHOLD = 0.5
+    THRESHOLD = 0.7
 
     from sqlalchemy import text as sa_text
     rows = db.execute(
