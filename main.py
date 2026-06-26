@@ -26,7 +26,12 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # ─── Database ─────────────────────────────────────────────────────────────────
-engine = create_engine(DATABASE_URL)
+# FORCE pg8000 driver to avoid psycopg2/C++ build errors on Windows
+SAFE_DB_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://")
+SAFE_DB_URL = SAFE_DB_URL.replace("postgres://", "postgresql+pg8000://") 
+SAFE_DB_URL = SAFE_DB_URL.replace("postgresql+psycopg2://", "postgresql+pg8000://")
+
+engine = create_engine(SAFE_DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
