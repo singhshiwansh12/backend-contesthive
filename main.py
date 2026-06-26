@@ -292,3 +292,41 @@ def delete_solution(
     db.delete(sol)
     db.commit()
     return {"message": f"Solution {solution_id} deleted successfully"}
+
+
+@app.get("/api/seed")
+def seed_data(admin_pin: str = Query(...), db: Session = Depends(get_db)):
+    verify_pin(admin_pin)
+
+    existing = db.query(Solution).count()
+    if existing > 0:
+        return {"message": f"Already has {existing} solutions. Skipping."}
+
+    SEEDS = [
+        {"contest":"Weekly Contest 345","platform":"LeetCode","problem":"Two Sum","difficulty":"Easy","language":"C++","topics":["Array","Hash Table"],"code":"class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> mp;\n        for (int i = 0; i < nums.size(); i++) {\n            int complement = target - nums[i];\n            if (mp.find(complement) != mp.end()) return {mp[complement], i};\n            mp[nums[i]] = i;\n        }\n        return {};\n    }\n};","explanation":"Hash map approach for O(n) time complexity"},
+        {"contest":"Biweekly Contest 110","platform":"LeetCode","problem":"Valid Parentheses","difficulty":"Easy","language":"C++","topics":["String","Stack"],"code":"class Solution {\npublic:\n    bool isValid(string s) {\n        stack<char> st;\n        for (char c : s) {\n            if (c=='('||c=='{'||c=='[') st.push(c);\n            else {\n                if (st.empty()) return false;\n                char top = st.top(); st.pop();\n                if (c==')' && top!='(') return false;\n                if (c=='}' && top!='{') return false;\n                if (c==']' && top!='[') return false;\n            }\n        }\n        return st.empty();\n    }\n};","explanation":"Stack to match brackets. O(n) time."},
+        {"contest":"Weekly Contest 340","platform":"LeetCode","problem":"Best Time to Buy and Sell Stock","difficulty":"Easy","language":"Python","topics":["Array","Greedy"],"code":"class Solution:\n    def maxProfit(self, prices):\n        min_price = float('inf')\n        max_profit = 0\n        for price in prices:\n            min_price = min(min_price, price)\n            max_profit = max(max_profit, price - min_price)\n        return max_profit","explanation":"Track min price and max profit in single pass. O(n)."},
+        {"contest":"Weekly Contest 346","platform":"LeetCode","problem":"Longest Substring Without Repeating Characters","difficulty":"Medium","language":"C++","topics":["String","Sliding Window"],"code":"class Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        unordered_set<char> st;\n        int left = 0, maxLen = 0;\n        for (int right = 0; right < s.length(); right++) {\n            while (st.find(s[right]) != st.end()) { st.erase(s[left]); left++; }\n            st.insert(s[right]);\n            maxLen = max(maxLen, right - left + 1);\n        }\n        return maxLen;\n    }\n};","explanation":"Sliding window with hash set for O(n) time."},
+        {"contest":"Weekly Contest 350","platform":"LeetCode","problem":"3Sum","difficulty":"Medium","language":"C++","topics":["Array","Two Pointers","Sorting"],"code":"class Solution {\npublic:\n    vector<vector<int>> threeSum(vector<int>& nums) {\n        sort(nums.begin(), nums.end());\n        vector<vector<int>> res;\n        for (int i = 0; i < (int)nums.size()-2; i++) {\n            if (i>0 && nums[i]==nums[i-1]) continue;\n            int lo=i+1, hi=nums.size()-1;\n            while (lo<hi) {\n                int sum=nums[i]+nums[lo]+nums[hi];\n                if (sum==0) { res.push_back({nums[i],nums[lo],nums[hi]}); lo++; hi--; }\n                else if (sum<0) lo++; else hi--;\n            }\n        }\n        return res;\n    }\n};","explanation":"Sort + two pointers. O(n^2) time."},
+        {"contest":"Weekly Contest 352","platform":"LeetCode","problem":"Coin Change","difficulty":"Medium","language":"Python","topics":["Dynamic Programming","Array"],"code":"class Solution:\n    def coinChange(self, coins, amount):\n        dp = [float('inf')] * (amount + 1)\n        dp[0] = 0\n        for coin in coins:\n            for x in range(coin, amount + 1):\n                dp[x] = min(dp[x], dp[x - coin] + 1)\n        return dp[amount] if dp[amount] != float('inf') else -1","explanation":"Bottom-up DP. O(amount * coins)."},
+        {"contest":"Biweekly Contest 112","platform":"LeetCode","problem":"Number of Islands","difficulty":"Medium","language":"C++","topics":["DFS","Matrix"],"code":"class Solution {\npublic:\n    int numIslands(vector<vector<char>>& grid) {\n        int count = 0;\n        for (int i=0;i<(int)grid.size();i++)\n            for (int j=0;j<(int)grid[0].size();j++)\n                if (grid[i][j]=='1') { dfs(grid,i,j); count++; }\n        return count;\n    }\n    void dfs(vector<vector<char>>& g, int i, int j) {\n        if (i<0||i>=(int)g.size()||j<0||j>=(int)g[0].size()||g[i][j]!='1') return;\n        g[i][j]='0';\n        dfs(g,i+1,j); dfs(g,i-1,j); dfs(g,i,j+1); dfs(g,i,j-1);\n    }\n};","explanation":"DFS from each unvisited land cell. O(m*n)."},
+        {"contest":"Weekly Contest 360","platform":"LeetCode","problem":"Median of Two Sorted Arrays","difficulty":"Hard","language":"C++","topics":["Binary Search","Divide and Conquer"],"code":"class Solution {\npublic:\n    double findMedianSortedArrays(vector<int>& A, vector<int>& B) {\n        if (A.size()>B.size()) swap(A,B);\n        int m=A.size(), n=B.size(), lo=0, hi=m;\n        while (lo<=hi) {\n            int i=(lo+hi)/2, j=(m+n+1)/2-i;\n            int maxLA=(i==0)?INT_MIN:A[i-1], minRA=(i==m)?INT_MAX:A[i];\n            int maxLB=(j==0)?INT_MIN:B[j-1], minRB=(j==n)?INT_MAX:B[j];\n            if (maxLA<=minRB && maxLB<=minRA) {\n                if ((m+n)%2==1) return max(maxLA,maxLB);\n                return (max(maxLA,maxLB)+min(minRA,minRB))/2.0;\n            } else if (maxLA>minRB) hi=i-1; else lo=i+1;\n        }\n        return 0;\n    }\n};","explanation":"Binary search on smaller array. O(log(min(m,n)))."},
+        {"contest":"Weekly Contest 362","platform":"LeetCode","problem":"Trapping Rain Water","difficulty":"Hard","language":"C++","topics":["Array","Two Pointers"],"code":"class Solution {\npublic:\n    int trap(vector<int>& height) {\n        int lo=0, hi=height.size()-1, maxL=0, maxR=0, water=0;\n        while (lo<hi) {\n            if (height[lo]<height[hi]) {\n                if (height[lo]>=maxL) maxL=height[lo];\n                else water+=maxL-height[lo];\n                lo++;\n            } else {\n                if (height[hi]>=maxR) maxR=height[hi];\n                else water+=maxR-height[hi];\n                hi--;\n            }\n        }\n        return water;\n    }\n};","explanation":"Two pointers. O(n) time, O(1) space."},
+        {"contest":"Codeforces Round 900 (Div. 2)","platform":"Codeforces","problem":"Sasha and the Beautiful Array","difficulty":"Easy","language":"C++","topics":["Greedy","Sorting"],"code":"#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    int t; cin>>t;\n    while(t--) {\n        int n; cin>>n;\n        vector<int> a(n);\n        for(auto& x:a) cin>>x;\n        sort(a.begin(),a.end());\n        long long ans=0;\n        for(int i=1;i<n;i++) ans+=a[i]-a[i-1];\n        cout<<ans<<\"\\n\";\n    }\n}","explanation":"Sort array. Answer equals a[n-1]-a[0] via telescoping sum."},
+    ]
+
+    count = 0
+    for s in SEEDS:
+        embed_text = f"{s['problem']} {s['explanation']} {' '.join(s['topics'])}"
+        embedding = get_embedding(embed_text)
+        sol = Solution(
+            contest=s["contest"], platform=s["platform"], problem=s["problem"],
+            difficulty=s["difficulty"], language=s["language"],
+            topics=json.dumps(s["topics"]), code=s["code"],
+            explanation=s["explanation"], embedding=embedding,
+        )
+        db.add(sol)
+        count += 1
+
+    db.commit()
+    return {"message": f"Seeded {count} solutions successfully!"}
