@@ -44,7 +44,7 @@ class Solution(Base):
     topics     = Column(Text, default="[]")
     code       = Column(Text, nullable=False)
     explanation= Column(Text, default="")
-    embedding  = Column(Vector(768), nullable=True)
+    embedding  = Column(Vector(3072), nullable=True)
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
 class SolutionCreate(BaseModel):
@@ -83,7 +83,7 @@ def get_embedding(text: str) -> List[float]:
         return result["embedding"]
     except Exception as e:
         print(f"Embedding error: {e}")
-        return [0.0] * 768
+        return [0.0] * 3072
 
 def to_out(sol: Solution) -> dict:
     try:    topics = json.loads(sol.topics) if sol.topics else []
