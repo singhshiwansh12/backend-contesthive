@@ -76,7 +76,7 @@ def get_embedding(text: str) -> List[float]:
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_KEY)
         result = genai.embed_content(
-            model="models/embedding-001",
+            model="models/text-embedding-004",
             content=text,
             task_type="retrieval_document",
         )
